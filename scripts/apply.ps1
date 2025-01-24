@@ -9,10 +9,6 @@ function Check-Dependencies {
         Write-Host "git is not installed. Please install git" -ForegroundColor Red
         exit 1
     }
-    if (-not (Get-Command sed -ErrorAction SilentlyContinue)) {
-        Write-Host "sed is not installed. Please install sed" -ForegroundColor Red
-        exit 1
-    }
     if (-not (Get-Command Move-Item -ErrorAction SilentlyContinue)) {
         Write-Host "mv (Move-Item) is not available. Please install coreutils" -ForegroundColor Red
         exit 1
