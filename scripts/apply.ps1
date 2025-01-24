@@ -11,31 +11,14 @@ function Check-Dependencies {
     }
 }
 
-function Get-UserInfo {
-    if (-not $FIRSTNAME -or -not $LASTNAME) {
-        $FULLNAME = git config --get user.name
-        if ($FULLNAME) {
-            $NAME_PARTS = $FULLNAME -split ' '
-            $FIRSTNAME = $NAME_PARTS[0]
-            $LASTNAME = $NAME_PARTS[1]
-        }
-        if (-not $FIRSTNAME) { $FIRSTNAME = Read-Host "Enter your first name" }
-        if (-not $LASTNAME) { $LASTNAME = Read-Host "Enter your last name" }
-    }
-    if (-not $LAB_NAME) {
-        $LAB_NAME = Read-Host "Enter the project name"
-    }
-    if (-not $LAB_NAME -or -not $FIRSTNAME -or -not $LASTNAME) {
-        Write-Host "Lab name, firstname, and lastname all have to be provided." -ForegroundColor Red
-        exit 1
-    }
-}
-
 function Remove-GitRepo {
     Remove-Item -Recurse -Force .git
 }
 
 function Setup-Venv {
+    param (
+        [string]$LAB_NAME
+    )
     $PYTHON_CMD = Get-Command python3 -ErrorAction SilentlyContinue
     if (-not $PYTHON_CMD) { $PYTHON_CMD = Get-Command python -ErrorAction SilentlyContinue }
     if (-not $PYTHON_CMD) {
@@ -56,8 +39,48 @@ function Open-VSCode {
     }
 }
 
+function Get-UserInfo {
+    param (
+        [string]$LAB_NAME,
+        [string]$FIRSTNAME,
+        [string]$LASTNAME
+    )
+
+    if (-not $FIRSTNAME -or -not $LASTNAME) {
+        $FULLNAME = git config --get user.name
+        if ($FULLNAME) {
+            $NAME_PARTS = $FULLNAME -split ' '
+            $FIRSTNAME = $NAME_PARTS[0]
+            $LASTNAME = $NAME_PARTS[1]
+        }
+        
+        if (-not $FIRSTNAME) {
+            $FIRSTNAME = Read-Host "Enter your first name"
+        }
+
+        if (-not $LASTNAME) {
+            $LASTNAME = Read-Host "Enter your last name"
+        }
+    }
+
+    if (-not $LAB_NAME) {
+        $LAB_NAME = Read-Host "Enter the project name"
+    }
+
+    if (-not $LAB_NAME -or -not $FIRSTNAME -or -not $LASTNAME) {
+        Write-Host "Lab name, firstname, and lastname all have to be provided." -ForegroundColor Red
+        exit 1
+    }
+
+    return @{
+        LAB_NAME  = $LAB_NAME
+        FIRSTNAME = $FIRSTNAME
+        LASTNAME  = $LASTNAME
+    }
+}
+
 Check-Dependencies
-Get-UserInfo
+$UserInfo = Get-UserInfo -LAB_NAME $LAB_NAME -FIRSTNAME $FIRSTNAME -LASTNAME $LASTNAME
 
 git clone --depth=1 --branch=template https://github.com/Phillezi/cm1001-lab-template.git
 if ($LASTEXITCODE -ne 0) {
@@ -65,15 +88,15 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Rename-Item -Path "cm1001-lab-template" -NewName "$LAB_NAME"
-cd "$LAB_NAME"
+Rename-Item -Path "cm1001-lab-template" -NewName "$($UserInfo.LAB_NAME)"
+cd "$($UserInfo.LAB_NAME)"
 Remove-GitRepo
 
-Rename-Item -Path "firstname_lastname_assingment_X.ipynb" -NewName "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb"
+Rename-Item -Path "firstname_lastname_assingment_X.ipynb" -NewName "$($UserInfo.FIRSTNAME)_$($UserInfo.LASTNAME)_$($UserInfo.LAB_NAME).ipynb"
 
-(Get-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb") -replace "Name Author 1", "$FIRSTNAME $LASTNAME" | Set-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb"
-(Get-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb") -replace "Assignment 1", "$LAB_NAME" | Set-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb"
-(Get-Content README.md) -replace "Assignment X", "$LAB_NAME" | Set-Content README.md
+(Get-Content "$($UserInfo.FIRSTNAME)_$($UserInfo.LASTNAME)_$($UserInfo.LAB_NAME).ipynb") -replace "Name Author 1", "$($UserInfo.FIRSTNAME) $($UserInfo.LASTNAME)" | Set-Content "$($UserInfo.FIRSTNAME)_$($UserInfo.LASTNAME)_$($UserInfo.LAB_NAME).ipynb"
+(Get-Content "$($UserInfo.FIRSTNAME)_$($UserInfo.LASTNAME)_$($UserInfo.LAB_NAME).ipynb") -replace "Assignment 1", "$($UserInfo.LAB_NAME)" | Set-Content "$($UserInfo.FIRSTNAME)_$($UserInfo.LASTNAME)_$($UserInfo.LAB_NAME).ipynb"
+(Get-Content README.md) -replace "Assignment X", "$($UserInfo.LAB_NAME)" | Set-Content README.md
 
-Setup-Venv
+Setup-Venv -LAB_NAME $UserInfo.LAB_NAME
 Open-VSCode
