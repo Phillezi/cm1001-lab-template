@@ -1,5 +1,9 @@
 #!/bin/env sh
 
+LAB_NAME=$1
+FIRSTNAME=$2
+LASTNAME=$3
+
 check_dependencies() {
     if ! command -v git >/dev/null; then
         echo "git is not installed. Please install git"
@@ -18,19 +22,28 @@ check_dependencies() {
 }
 
 get_user_info() {
-    FULLNAME=$(git config --get user.name)
-    FIRSTNAME=$(echo "$FULLNAME" | awk '{print $1}')
-    LASTNAME=$(echo "$FULLNAME" | awk '{print $2}')
+    if [[ -z "$FIRSTNAME" || -z "$LASTNAME" ]]; then
+        FULLNAME=$(git config --get user.name)
+        FIRSTNAME=$(echo "$FULLNAME" | awk '{print $1}')
+        LASTNAME=$(echo "$FULLNAME" | awk '{print $2}')
 
-    if [ -z "$FIRSTNAME" ]; then
-        read -p "Enter your first name: " FIRSTNAME
+        if [ -z "$FIRSTNAME" ]; then
+            read -p "Enter your first name: " FIRSTNAME
+        fi
+
+        if [ -z "$LASTNAME" ]; then
+            read -p "Enter your last name: " LASTNAME
+        fi
     fi
 
-    if [ -z "$LASTNAME" ]; then
-        read -p "Enter your last name: " LASTNAME
+    if [ -z "$LAB_NAME" ]; then
+        read -p "Enter the project name: " LAB_NAME
     fi
 
-    read -p "Enter the project name: " LAB_NAME
+    if [[ -z "$LAB_NAME" || -z "$FIRSTNAME" || -z "$LASTNAME" ]]; then
+        echo "Lab name, firstname, and lastname all have to be provided."
+        exit 1
+    fi
 }
 
 # needs to be run inside the cloned git repo

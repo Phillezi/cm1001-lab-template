@@ -1,34 +1,42 @@
-# PowerShell script for setting up the lab project
+param (
+    [string]$LAB_NAME,
+    [string]$FIRSTNAME,
+    [string]$LASTNAME
+)
 
 function Check-Dependencies {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Host "git is not installed. Please install git"
+        Write-Host "git is not installed. Please install git" -ForegroundColor Red
         exit 1
     }
-
     if (-not (Get-Command sed -ErrorAction SilentlyContinue)) {
-        Write-Host "sed is not installed. Please install sed"
+        Write-Host "sed is not installed. Please install sed" -ForegroundColor Red
+        exit 1
+    }
+    if (-not (Get-Command Move-Item -ErrorAction SilentlyContinue)) {
+        Write-Host "mv (Move-Item) is not available. Please install coreutils" -ForegroundColor Red
         exit 1
     }
 }
 
 function Get-UserInfo {
-    $FULLNAME = git config --get user.name
-    if (-not $FULLNAME) {
-        $FULLNAME = Read-Host "Enter your full name (firstname lastname)"
+    if (-not $FIRSTNAME -or -not $LASTNAME) {
+        $FULLNAME = git config --get user.name
+        if ($FULLNAME) {
+            $NAME_PARTS = $FULLNAME -split ' '
+            $FIRSTNAME = $NAME_PARTS[0]
+            $LASTNAME = $NAME_PARTS[1]
+        }
+        if (-not $FIRSTNAME) { $FIRSTNAME = Read-Host "Enter your first name" }
+        if (-not $LASTNAME) { $LASTNAME = Read-Host "Enter your last name" }
     }
-    $NAME_PARTS = $FULLNAME -split " "
-    $FIRSTNAME = $NAME_PARTS[0]
-    $LASTNAME = $NAME_PARTS[1]
-
-    if (-not $FIRSTNAME) {
-        $FIRSTNAME = Read-Host "Enter your first name"
+    if (-not $LAB_NAME) {
+        $LAB_NAME = Read-Host "Enter the project name"
     }
-    if (-not $LASTNAME) {
-        $LASTNAME = Read-Host "Enter your last name"
+    if (-not $LAB_NAME -or -not $FIRSTNAME -or -not $LASTNAME) {
+        Write-Host "Lab name, firstname, and lastname all have to be provided." -ForegroundColor Red
+        exit 1
     }
-
-    $GLOBALS:LAB_NAME = Read-Host "Enter the project name"
 }
 
 function Remove-GitRepo {
@@ -36,26 +44,23 @@ function Remove-GitRepo {
 }
 
 function Setup-Venv {
-    $pythonCmd = (Get-Command python -ErrorAction SilentlyContinue).Source
-    if (-not $pythonCmd) {
-        $pythonCmd = (Get-Command python3 -ErrorAction SilentlyContinue).Source
-    }
-    if (-not $pythonCmd) {
-        Write-Host "Python is not installed. Please install Python"
+    $PYTHON_CMD = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $PYTHON_CMD) { $PYTHON_CMD = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $PYTHON_CMD) {
+        Write-Host "Python is not installed. Please install Python." -ForegroundColor Yellow
         Write-Host "Skipping venv setup"
     } else {
-        & $pythonCmd -m venv $LAB_NAME
-        "$LAB_NAME" | Out-File -Append .gitignore
-        # idk if this works on windows?
-        Write-Host "run `".\$LAB_NAME\Scripts\Activate`" to activate it."
+        & $PYTHON_CMD -m venv $LAB_NAME
+        Add-Content .gitignore $LAB_NAME
+        Write-Host "run`n`t.\$LAB_NAME\Scripts\Activate" -ForegroundColor Green
     }
 }
 
 function Open-VSCode {
-    if (Get-Command code -ErrorAction SilentlyContinue) {
-        code .
+    if (-not (Get-Command code -ErrorAction SilentlyContinue)) {
+        Write-Host "Could not find VSCode. Is it installed and the 'code' command set up?" -ForegroundColor Yellow
     } else {
-        Write-Host "Could not find VSCode. Is it installed and the 'code' command set up?"
+        code .
     }
 }
 
@@ -63,17 +68,20 @@ Check-Dependencies
 Get-UserInfo
 
 git clone --depth=1 --branch=template https://github.com/Phillezi/cm1001-lab-template.git
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to clone repository" -ForegroundColor Red
+    exit 1
+}
 
-Rename-Item cm1001-lab-template $LAB_NAME
-
+Move-Item cm1001-lab-template $LAB_NAME
 Set-Location $LAB_NAME
-
 Remove-GitRepo
 
-Rename-Item "firstname_lastname_assignment_X.ipynb" "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb"
+Move-Item firstname_lastname_assingment_X.ipynb "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb"
 
 (Get-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb") -replace "Name Author 1", "$FIRSTNAME $LASTNAME" | Set-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb"
-(Get-Content "README.md") -replace "Assignment X", "$LAB_NAME" | Set-Content "README.md"
+(Get-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb") -replace "Assignment 1", "$LAB_NAME" | Set-Content "${FIRSTNAME}_${LASTNAME}_${LAB_NAME}.ipynb"
+(Get-Content README.md) -replace "Assignment X", "$LAB_NAME" | Set-Content README.md
 
 Setup-Venv
 Open-VSCode
