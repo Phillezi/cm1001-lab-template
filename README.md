@@ -33,13 +33,7 @@ Check what it does [here](https://github.com/Phillezi/cm1001-lab-template/tree/m
 To setup the template on windows run the following command in powershell.
 
 ```powershell
-powershell -c "irm https://raw.githubusercontent.com/Phillezi/cm1001-lab-template/main/scripts/apply.ps1 | iex; apply.ps1 'your-lab-name-here'"
-```
-
-If you dont have setup your `git config user.name` or it isnt accurate you can provide firstname and lastname explicitly as arguments.
-
-```powershell
-powershell -c "irm https://raw.githubusercontent.com/Phillezi/cm1001-lab-template/main/scripts/apply.ps1 | iex; apply.ps1 'your-lab-name-here' 'firstname' 'lastname'"
+powershell -c "irm https://raw.githubusercontent.com/Phillezi/cm1001-lab-template/main/scripts/apply.ps1 | iex"
 ```
 
 Check what it does [here](https://github.com/Phillezi/cm1001-lab-template/tree/main/scripts/apply.ps1).
